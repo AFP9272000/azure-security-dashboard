@@ -50,7 +50,7 @@ jobs:
 
       # Trivy file scan
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v1.0.2
         with:
           scan-type: fs
           scan-ref: .
@@ -96,7 +96,7 @@ jobs:
 
       # Trivy run
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v1.0.2
         with:
           scan-type: image
           image-ref: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
