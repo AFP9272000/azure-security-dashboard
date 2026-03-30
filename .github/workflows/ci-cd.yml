@@ -43,14 +43,14 @@ jobs:
 
       # tfsec run
       - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
+        uses: aquasecurity/tfsec-action@v1.0.0
         with:
           working_directory: ${{ env.TERRAFORM_DIR }}
           soft_fail: false
 
       # Trivy file scan
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@v1.0.2
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
@@ -96,7 +96,7 @@ jobs:
 
       # Trivy run
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@v1.0.2
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
           image-ref: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
