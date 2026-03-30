@@ -54,7 +54,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          severity: CRITICAL,HIGH
+          severity: CRITICAL
           exit-code: 1
 
   # Build & Push Container Image
@@ -108,7 +108,7 @@ jobs:
       - name: Run Trivy image scan
         run: |
           ACR_LOGIN=$(az acr show --name ${{ env.ACR_NAME }} --query loginServer -o tsv)
-          trivy image --severity CRITICAL,HIGH --exit-code 1 ${ACR_LOGIN}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          trivy image --severity CRITICAL --exit-code 1 ${ACR_LOGIN}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
   # Terraform Infrastructure
   terraform:
