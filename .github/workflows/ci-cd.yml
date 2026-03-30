@@ -95,6 +95,16 @@ jobs:
           docker push ${ACR_LOGIN}/${{ env.IMAGE_NAME }}:latest
 
       # Trivy run
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
       - name: Run Trivy image scan
         run: |
           ACR_LOGIN=$(az acr show --name ${{ env.ACR_NAME }} --query loginServer -o tsv)
