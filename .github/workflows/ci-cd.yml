@@ -96,12 +96,9 @@ jobs:
 
       # Trivy run
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: image
-          image-ref: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-          severity: CRITICAL,HIGH
-          exit-code: 1
+        run: |
+          ACR_LOGIN=$(az acr show --name ${{ env.ACR_NAME }} --query loginServer -o tsv)
+          trivy image --severity CRITICAL,HIGH --exit-code 1 ${ACR_LOGIN}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
   # Terraform Infrastructure
   terraform:
