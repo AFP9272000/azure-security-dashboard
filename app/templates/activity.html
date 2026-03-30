@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Activity | Azure Security Dashboard{% endblock %}
+{% block page_title %}Activity Log{% endblock %}
+{% block subtitle %}Azure Subscription Activity Events (Last 48 Hours){% endblock %}
+
+{% block content %}
+<div class="panel full-width">
+    <div class="panel-header">
+        <h2>Activity Events ({{ activity | length }})</h2>
+    </div>
+    <div class="panel-body">
+        {% if activity %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="5%">Level</th>
+                    <th width="30%">Operation</th>
+                    <th width="20%">Caller</th>
+                    <th width="15%">Resource Group</th>
+                    <th width="10%">Status</th>
+                    <th width="10%">IP</th>
+                    <th width="10%">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in activity %}
+                <tr>
+                    <td>
+                        {% if event.Level == "Error" or event.Level == "Critical" %}
+                        <span class="badge badge-high">{{ event.Level }}</span>
+                        {% elif event.Level == "Warning" %}
+                        <span class="badge badge-medium">{{ event.Level }}</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ event.Level or 'Info' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="mono cell-primary">{{ event.OperationNameValue or 'N/A' }}</td>
+                    <td>
+                        <div class="cell-secondary">{{ event.Caller[:35] if event.Caller else 'System' }}{{ '...' if event.Caller and event.Caller|length > 35 }}</div>
+                    </td>
+                    <td>{{ event.ResourceGroup or 'N/A' }}</td>
+                    <td>
+                        {% if event.ActivityStatusValue == "Success" or event.ActivityStatusValue == "Succeeded" %}
+                        <span class="status-dot status-healthy"></span>
+                        {% elif event.ActivityStatusValue == "Failed" %}
+                        <span class="status-dot status-unhealthy"></span>
+                        {% else %}
+                        <span class="status-dot status-unknown"></span>
+                        {% endif %}
+                        {{ event.ActivityStatusValue or 'N/A' }}
+                    </td>
+                    <td class="mono">{{ event.CallerIpAddress or '--' }}</td>
+                    <td>{{ event.TimeGenerated[:16] if event.TimeGenerated else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state large">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <h3>No Activity Events</h3>
+            <p>No Azure Activity Log events found in the last 48 hours. Events may take a few minutes to appear after resource operations.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

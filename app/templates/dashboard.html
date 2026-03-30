@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Azure Security Dashboard{% endblock %}
+{% block page_title %}Security Overview{% endblock %}
+{% block subtitle %}Azure Security Posture at a Glance{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+    <!-- Secure Score Card -->
+    <div class="metric-card accent-blue">
+        <div class="metric-label">Secure Score</div>
+        <div class="metric-value">
+            {% if data and data.secure_score %}
+                {{ data.secure_score.percentage }}%
+            {% else %}
+                --
+            {% endif %}
+        </div>
+        <div class="metric-detail">
+            {% if data and data.secure_score %}
+                {{ data.secure_score.current }} / {{ data.secure_score.max }} points
+            {% else %}
+                No data available
+            {% endif %}
+        </div>
+        <div class="metric-bar">
+            <div class="metric-bar-fill" style="width: {{ data.secure_score.percentage if data and data.secure_score else 0 }}%"></div>
+        </div>
+    </div>
+
+    <!-- Active Alerts Card -->
+    <div class="metric-card accent-red">
+        <div class="metric-label">Active Alerts</div>
+        <div class="metric-value">
+            {% if data and data.alerts is defined %}
+                {{ data.alerts | length }}
+            {% else %}
+                --
+            {% endif %}
+        </div>
+        <div class="metric-detail">
+            {% if data and data.alerts %}
+                {% set high = data.alerts | selectattr("severity", "equalto", "High") | list | length %}
+                {% set medium = data.alerts | selectattr("severity", "equalto", "Medium") | list | length %}
+                {{ high }} High · {{ medium }} Medium
+            {% else %}
+                No active alerts
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resources Card -->
+    <div class="metric-card accent-green">
+        <div class="metric-label">Monitored Resources</div>
+        <div class="metric-value">
+            {% if data and data.resources %}
+                {{ data.resources.total_count }}
+            {% else %}
+                --
+            {% endif %}
+        </div>
+        <div class="metric-detail">
+            {% if data and data.resources and data.resources.by_type %}
+                {{ data.resources.by_type | length }} resource types
+            {% else %}
+                No resources found
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Activity Card -->
+    <div class="metric-card accent-amber">
+        <div class="metric-label">Activity Events (24h)</div>
+        <div class="metric-value">
+            {% if data and data.activity is defined %}
+                {{ data.activity | length }}
+            {% else %}
+                --
+            {% endif %}
+        </div>
+        <div class="metric-detail">Last 24 hours</div>
+    </div>
+</div>
+
+<!-- Two Column Layout: Alerts + Activity -->
+<div class="dashboard-grid">
+    <!-- Recent Alerts -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Recent Security Alerts</h2>
+            <a href="/alerts" class="panel-link">View all →</a>
+        </div>
+        <div class="panel-body">
+            {% if data and data.alerts %}
+                {% for alert in data.alerts[:5] %}
+                <div class="list-item">
+                    <div class="severity-indicator severity-{{ alert.severity | lower }}"></div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">{{ alert.name }}</div>
+                        <div class="list-item-meta">
+                            <span class="badge badge-{{ alert.severity | lower }}">{{ alert.severity }}</span>
+                            <span>{{ alert.resource or 'N/A' }}</span>
+                            {% if alert.time %}
+                            <span>{{ alert.time[:16] }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <p>No active security alerts</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2>Activity Log</h2>
+            <a href="/activity" class="panel-link">View all →</a>
+        </div>
+        <div class="panel-body">
+            {% if data and data.activity %}
+                {% for event in data.activity[:8] %}
+                <div class="list-item compact">
+                    <div class="activity-icon">
+                        {% if event.Level == "Error" or event.Level == "Critical" %}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        {% elif event.Level == "Warning" %}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        {% else %}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        {% endif %}
+                    </div>
+                    <div class="list-item-content">
+                        <div class="list-item-title mono">{{ event.OperationNameValue or 'Unknown Operation' }}</div>
+                        <div class="list-item-meta">
+                            <span>{{ event.Caller[:30] if event.Caller else 'System' }}{{ '...' if event.Caller and event.Caller|length > 30 }}</span>
+                            <span>{{ event.ActivityStatusValue or '' }}</span>
+                            {% if event.TimeGenerated %}
+                            <span>{{ event.TimeGenerated[:16] }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <p>No activity events in the last 24 hours</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations -->
+<div class="panel full-width">
+    <div class="panel-header">
+        <h2>Security Recommendations</h2>
+    </div>
+    <div class="panel-body">
+        {% if data and data.recommendations %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Recommendation</th>
+                    <th>Severity</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in data.recommendations %}
+                <tr>
+                    <td>{{ rec.name }}</td>
+                    <td><span class="badge badge-{{ rec.severity | lower }}">{{ rec.severity }}</span></td>
+                    <td>{{ rec.category }}</td>
+                    <td>
+                        <span class="status-dot status-{{ rec.status | lower }}"></span>
+                        {{ rec.status }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>No recommendations available</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

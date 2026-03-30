@@ -1,0 +1,15 @@
+.env
+.env.example
+cred.json
+__pycache__/
+*.pyc
+.vscode/
+.terraform/
+*.tfstate
+*.tfvars
+*.tfstate.backup
+.terraform.lock.hcl
+tfplan
+node_modules/
+*.log
+venv/

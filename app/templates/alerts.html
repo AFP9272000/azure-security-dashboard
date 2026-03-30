@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts | Azure Security Dashboard{% endblock %}
+{% block page_title %}Security Alerts{% endblock %}
+{% block subtitle %}Microsoft Defender for Cloud Alerts{% endblock %}
+
+{% block content %}
+<div class="panel full-width">
+    <div class="panel-header">
+        <h2>All Alerts ({{ alerts | length }})</h2>
+        <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="high">High</button>
+            <button class="filter-btn" data-filter="medium">Medium</button>
+            <button class="filter-btn" data-filter="low">Low</button>
+        </div>
+    </div>
+    <div class="panel-body">
+        {% if alerts %}
+        <table class="data-table" id="alerts-table">
+            <thead>
+                <tr>
+                    <th width="5%"></th>
+                    <th width="35%">Alert</th>
+                    <th width="10%">Severity</th>
+                    <th width="10%">Status</th>
+                    <th width="20%">Resource</th>
+                    <th width="20%">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr class="alert-row" data-severity="{{ alert.severity | lower }}">
+                    <td><div class="severity-indicator severity-{{ alert.severity | lower }}"></div></td>
+                    <td>
+                        <div class="cell-primary">{{ alert.name }}</div>
+                        <div class="cell-secondary">{{ alert.description[:120] }}{{ '...' if alert.description|length > 120 }}</div>
+                    </td>
+                    <td><span class="badge badge-{{ alert.severity | lower }}">{{ alert.severity }}</span></td>
+                    <td><span class="status-pill status-{{ alert.status | lower }}">{{ alert.status }}</span></td>
+                    <td class="mono">{{ alert.resource or 'N/A' }}</td>
+                    <td>{{ alert.time[:19] if alert.time else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state large">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            <h3>No Security Alerts</h3>
+            <p>Your environment has no active Defender for Cloud alerts.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        document.querySelectorAll('.alert-row').forEach(row => {
+            row.style.display = (filter === 'all' || row.dataset.severity === filter) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}
