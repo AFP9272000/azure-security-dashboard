@@ -166,6 +166,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Install kubelogin
+        run: |
+          az aks install-cli
+          echo "/usr/local/bin" >> $GITHUB_PATH
+
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
