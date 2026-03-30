@@ -144,10 +144,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan -input=false \
-               -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-               -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
-               -var="authorized_ip_ranges=[\"73.183.100.243/32\"]"
+        run: terraform plan -out=tfplan -input=false -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" -var="tenant_id=${{ secrets.AZURE_TENANT_ID }}" -var="authorized_ip_ranges=[\"73.183.100.243/32\"]"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
