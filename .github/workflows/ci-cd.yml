@@ -171,6 +171,13 @@ jobs:
           az aks install-cli
           echo "/usr/local/bin" >> $GITHUB_PATH
 
+      - name: Whitelist runner IP on AKS
+        run: |
+          RUNNER_IP=$(curl -s ifconfig.me)
+          CURRENT_IPS=$(az aks show --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER }} --query "apiServerAccessProfile.authorizedIpRanges" -o tsv | tr '\t' ',')
+          az aks update --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER }} --api-server-authorized-ip-ranges "${CURRENT_IPS},${RUNNER_IP}/32"
+          sleep 30
+
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
@@ -187,15 +194,10 @@ jobs:
 
       - name: Deploy to AKS
         run: |
-          # Update image tag in deployment manifest
           sed -i "s|REPLACE_WITH_ACR_LOGIN_SERVER|${{ steps.acr.outputs.login_server }}|g" k8s/deployment.yaml
           sed -i "s|security-dashboard:v1|security-dashboard:${{ needs.build.outputs.image_tag }}|g" k8s/deployment.yaml
-
-          # Apply manifests
           kubectl apply -f k8s/service-account.yaml
           kubectl apply -f k8s/deployment.yaml
-
-          # Wait for rollout
           kubectl rollout status deployment/security-dashboard --timeout=120s
 
       - name: Verify deployment
@@ -209,3 +211,8 @@ jobs:
           echo "=== Dashboard URL ==="
           EXTERNAL_IP=$(kubectl get service security-dashboard -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "Dashboard: http://${EXTERNAL_IP}"
+
+      - name: Remove runner IP from AKS
+        if: always()
+        run: |
+          az aks update --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER }} --api-server-authorized-ip-ranges "73.183.100.243/32"
