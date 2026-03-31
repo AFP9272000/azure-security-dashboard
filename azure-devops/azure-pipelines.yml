@@ -25,14 +25,9 @@ stages:
         steps:
           - checkout: self
 
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '3.12'
-            displayName: 'Set up Python'
-
           # Checkov
           - script: |
-              pip install checkov
+              pip install checkov --quiet
               checkov -d $(terraformDir) --framework terraform --config-file $(terraformDir)/.checkov.yml --output cli
             displayName: 'Run Checkov'
 
