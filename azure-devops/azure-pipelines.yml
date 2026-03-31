@@ -125,8 +125,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 $RUNNER_IP = (Invoke-RestMethod -Uri "https://ifconfig.me/ip").Trim()
-                $CURRENT_IPS = az aks show --resource-group $(aksResourceGroup) --name $(aksCluster) --query "apiServerAccessProfile.authorizedIpRanges" -o tsv
-                $CURRENT_IPS = $CURRENT_IPS -replace "`t", ","
+                $CURRENT_IPS = (az aks show --resource-group $(aksResourceGroup) --name $(aksCluster) --query "apiServerAccessProfile.authorizedIpRanges" -o json | ConvertFrom-Json) -join ","
                 az aks update --resource-group $(aksResourceGroup) --name $(aksCluster) --api-server-authorized-ip-ranges "$CURRENT_IPS,$RUNNER_IP/32"
                 Start-Sleep -Seconds 30
 
