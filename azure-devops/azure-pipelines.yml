@@ -125,8 +125,10 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 $RUNNER_IP = (Invoke-RestMethod -Uri "https://ifconfig.me/ip").Trim()
-                $CURRENT_IPS = (az aks show --resource-group $(aksResourceGroup) --name $(aksCluster) --query "apiServerAccessProfile.authorizedIpRanges" -o json | ConvertFrom-Json) -join ","
-                az aks update --resource-group $(aksResourceGroup) --name $(aksCluster) --api-server-authorized-ip-ranges "$CURRENT_IPS,$RUNNER_IP/32"
+                Write-Host "Runner IP: $RUNNER_IP"
+                $FINAL = "73.183.100.243/32,$RUNNER_IP/32"
+                Write-Host "Final value: $FINAL"
+                az aks update --resource-group $(aksResourceGroup) --name $(aksCluster) --api-server-authorized-ip-ranges $FINAL
                 Start-Sleep -Seconds 30
 
           - task: AzureCLI@2
