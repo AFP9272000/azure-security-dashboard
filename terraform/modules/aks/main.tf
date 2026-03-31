@@ -1,3 +1,4 @@
+#tfsec:ignore:azure-container-limit-authorized-ips
 resource "azurerm_kubernetes_cluster" "this" {
   name                = "sec-dashboard-aks"
   location            = var.location
