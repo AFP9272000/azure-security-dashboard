@@ -124,7 +124,7 @@ stages:
               scriptType: 'pscore'
               scriptLocation: 'inlineScript'
               inlineScript: |
-                $RUNNER_IP = (Invoke-RestMethod -Uri "https://ifconfig.me/ip").Trim()
+                $RUNNER_IP = (Invoke-RestMethod -Uri "https://api.ipify.org").Trim()
                 Write-Host "Runner IP: $RUNNER_IP"
                 $FINAL = "73.183.100.243/32,$RUNNER_IP/32"
                 Write-Host "Final value: $FINAL"
