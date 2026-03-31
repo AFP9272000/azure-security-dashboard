@@ -139,7 +139,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
-                kubelogin convert-kubeconfig -l azurecli
+                kubelogin convert-kubeconfig --login azurecli
 
                 $content = Get-Content k8s/deployment.yaml -Raw
                 $content = $content -replace "REPLACE_WITH_ACR_LOGIN_SERVER", "$(acrLogin)"
@@ -158,7 +158,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
-                kubelogin convert-kubeconfig -l azurecli
+                kubelogin convert-kubeconfig --login azurecli
 
                 Write-Host "=== Pod Status ==="
                 kubectl get pods -l app=security-dashboard
