@@ -62,3 +62,12 @@ module "workload_identity" {
   aks_oidc_issuer_url = module.aks.oidc_issuer_url
   tags                = local.common_tags
 }
+
+module "alerts" {
+  source = "./modules/alerts"
+
+  resource_group_name        = module.resource_group.name
+  log_analytics_workspace_id = module.log_analytics.workspace_resource_id
+  aks_cluster_id             = module.aks.cluster_id
+  tags                       = local.common_tags
+}
