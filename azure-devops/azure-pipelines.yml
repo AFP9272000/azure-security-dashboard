@@ -1,0 +1,181 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: 'self-hosted'
+
+variables:
+  acrName: 'securitydashboardcontainers2'
+  aksCluster: 'sec-dashboard-aks'
+  aksResourceGroup: 'security-dashboard'
+  imageName: 'security-dashboard'
+  terraformDir: 'terraform'
+  serviceConnection: 'azure-security-dashboard-sc'
+  azureSubscription: 'azure-security-dashboard-sc'
+
+stages:
+  - stage: SecurityScan
+    displayName: 'Security Scanning'
+    jobs:
+      - job: Scan
+        displayName: 'Run Security Scanners'
+        steps:
+          - checkout: self
+
+          - powershell: |
+              python -m pip install checkov --quiet
+              python -m checkov.main -d $(terraformDir) --framework terraform --config-file $(terraformDir)/.checkov.yml --output cli
+            displayName: 'Run Checkov'
+
+          - powershell: |
+              tfsec $(terraformDir)
+            displayName: 'Run tfsec'
+
+          - powershell: |
+              trivy fs --scanners vuln --severity CRITICAL --exit-code 1 .
+            displayName: 'Run Trivy filesystem scan'
+
+  - stage: Build
+    displayName: 'Build & Push Image'
+    dependsOn: SecurityScan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: BuildPush
+        displayName: 'Build and Push to ACR'
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Build, Push, and Scan Image'
+            name: buildStep
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $IMAGE_TAG = "$(Build.SourceVersion)".Substring(0, 7)
+                Write-Host "##vso[task.setvariable variable=imageTag;isOutput=true]$IMAGE_TAG"
+
+                $ACR_LOGIN = az acr show --name $(acrName) --query loginServer -o tsv
+                Write-Host "##vso[task.setvariable variable=acrLogin;isOutput=true]$ACR_LOGIN"
+
+                az acr login --name $(acrName)
+
+                docker build -t "$ACR_LOGIN/$(imageName):$IMAGE_TAG" -t "$ACR_LOGIN/$(imageName):latest" .
+                docker push "$ACR_LOGIN/$(imageName):$IMAGE_TAG"
+                docker push "$ACR_LOGIN/$(imageName):latest"
+
+                trivy image --severity CRITICAL --exit-code 1 "$ACR_LOGIN/$(imageName):$IMAGE_TAG"
+
+  - stage: Terraform
+    displayName: 'Terraform Deploy'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: TerraformApply
+        displayName: 'Plan and Apply'
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Terraform Init, Plan, Apply'
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              addSpnToEnvironment: true
+              inlineScript: |
+                $env:ARM_CLIENT_ID = $env:servicePrincipalId
+                $env:ARM_TENANT_ID = $env:tenantId
+                $env:ARM_SUBSCRIPTION_ID = az account show --query id -o tsv
+                $env:ARM_USE_OIDC = "true"
+                $env:ARM_OIDC_TOKEN = $env:idToken
+
+                Set-Location $(terraformDir)
+
+                terraform init
+                terraform plan -out=tfplan -input=false `
+                  -var="subscription_id=$env:ARM_SUBSCRIPTION_ID" `
+                  -var="tenant_id=$env:ARM_TENANT_ID" `
+                  -var="authorized_ip_ranges=[`"73.183.100.243/32`"]"
+                terraform apply -auto-approve tfplan
+
+  - stage: Deploy
+    displayName: 'Deploy to AKS'
+    dependsOn:
+      - Build
+      - Terraform
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: DeployAKS
+        displayName: 'Deploy to AKS'
+        variables:
+          imageTag: $[stageDependencies.Build.BuildPush.outputs['buildStep.imageTag']]
+          acrLogin: $[stageDependencies.Build.BuildPush.outputs['buildStep.acrLogin']]
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Whitelist runner IP'
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $RUNNER_IP = (Invoke-RestMethod -Uri "https://api.ipify.org").Trim()
+                Write-Host "Runner IP: $RUNNER_IP"
+                $FINAL = "73.183.100.243/32,$RUNNER_IP/32"
+                Write-Host "Final value: $FINAL"
+                az aks update --resource-group $(aksResourceGroup) --name $(aksCluster) --api-server-authorized-ip-ranges $FINAL
+                Start-Sleep -Seconds 30
+
+          - task: AzureCLI@2
+            displayName: 'Deploy manifests to AKS'
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
+                kubelogin convert-kubeconfig -l azurecli
+
+                $content = Get-Content k8s/deployment.yaml -Raw
+                $content = $content -replace "REPLACE_WITH_ACR_LOGIN_SERVER", "$(acrLogin)"
+                $content = $content -replace "security-dashboard:v1", "security-dashboard:$(imageTag)"
+                Set-Content k8s/deployment.yaml -Value $content
+
+                kubectl apply -f k8s/service-account.yaml
+                kubectl apply -f k8s/deployment.yaml
+                kubectl rollout status deployment/security-dashboard --timeout=120s
+
+          - task: AzureCLI@2
+            displayName: 'Verify deployment'
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az aks get-credentials --resource-group $(aksResourceGroup) --name $(aksCluster) --overwrite-existing
+                kubelogin convert-kubeconfig -l azurecli
+
+                Write-Host "=== Pod Status ==="
+                kubectl get pods -l app=security-dashboard
+                Write-Host ""
+                Write-Host "=== Service ==="
+                kubectl get service security-dashboard
+                Write-Host ""
+                Write-Host "=== Dashboard URL ==="
+                $EXTERNAL_IP = kubectl get service security-dashboard -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+                Write-Host "Dashboard: http://$EXTERNAL_IP"
+
+          - task: AzureCLI@2
+            displayName: 'Remove runner IP from AKS'
+            condition: always()
+            inputs:
+              azureSubscription: $(serviceConnection)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az aks update --resource-group $(aksResourceGroup) --name $(aksCluster) --api-server-authorized-ip-ranges "73.183.100.243/32"
