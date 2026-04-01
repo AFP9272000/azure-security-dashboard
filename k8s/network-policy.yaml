@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-dashboard-netpol
+  namespace: default
+  labels:
+    app: security-dashboard
+spec:
+  podSelector:
+    matchLabels:
+      app: security-dashboard
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic only on port 8080 (from the LoadBalancer service)
+    - ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS to Azure APIs (Defender, Log Analytics, ARM, OIDC token endpoint)
+    - ports:
+        - protocol: TCP
+          port: 443
