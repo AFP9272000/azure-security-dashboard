@@ -1,4 +1,4 @@
-# Azure Security Dashboard
+Azure Security Dashboard
 
 Enterprise-grade security monitoring dashboard that aggregates Microsoft Defender for Cloud alerts, Azure Activity Logs, and Log Analytics queries into a unified SOC-style interface — reducing mean time to detect (MTTD) security issues across Azure environments.
 
@@ -24,56 +24,7 @@ A custom-built security operations dashboard deployed on Azure Kubernetes Servic
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           Azure Subscription                                  │
-│                                                                              │
-│  ┌─────────────┐    ┌──────────────────┐    ┌─────────────────────────────┐  │
-│  │  Defender    │    │   Log Analytics   │    │     Activity Log            │  │
-│  │  for Cloud   │    │   Workspace       │    │     (Diagnostic Settings)  │  │
-│  │             │    │                  │    │                             │  │
-│  │ • Secure    │    │ • KQL Queries    │    │ • Administrative Events    │  │
-│  │   Score     │    │ • Container      │    │ • Security Events          │  │
-│  │ • Alerts    │    │   Insights       │    │ • Policy Events            │  │
-│  │ • Recs      │    │ • Activity Logs  │    │ • Alert Events             │  │
-│  └──────┬──────┘    └────────┬─────────┘    └──────────────┬──────────────┘  │
-│         │                    │                              │                 │
-│         └────────────────────┼──────────────────────────────┘                 │
-│                              │                                                │
-│                    ┌─────────▼──────────┐                                     │
-│                    │   AKS Cluster       │                                     │
-│                    │                    │                                     │
-│                    │  ┌──────────────┐  │    ┌──────────────┐                │
-│                    │  │  Flask App   │  │    │     ACR      │                │
-│                    │  │  (Dashboard) │◄─┼────│  (Container  │                │
-│                    │  │              │  │    │   Registry)  │                │
-│                    │  └──────────────┘  │    └──────────────┘                │
-│                    │                    │                                     │
-│                    │  Workload Identity  │                                     │
-│                    │  (OIDC Federation) │                                     │
-│                    └────────────────────┘                                     │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           CI/CD Pipelines                                     │
-│                                                                              │
-│  ┌─────────────────────┐         ┌──────────────────────┐                    │
-│  │   GitHub Actions     │         │   Azure DevOps        │                    │
-│  │                     │         │                      │                    │
-│  │ 1. Security Scan    │         │ 1. Security Scan     │                    │
-│  │    (Checkov/tfsec/  │         │    (Checkov/tfsec/   │                    │
-│  │     Trivy)          │         │     Trivy)           │                    │
-│  │ 2. Build & Push     │         │ 2. Build & Push      │                    │
-│  │ 3. Terraform Apply  │         │ 3. Terraform Apply   │                    │
-│  │ 4. Deploy to AKS   │         │ 4. Deploy to AKS    │                    │
-│  │                     │         │                      │                    │
-│  │ Auth: OIDC          │         │ Auth: Workload       │                    │
-│  │ (Federated Creds)   │         │ Identity Federation  │                    │
-│  └─────────────────────┘         └──────────────────────┘                    │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+<img width="1322" height="822" alt="architecture drawio" src="https://github.com/user-attachments/assets/d6ad867f-46d5-4425-8675-3d7a1e235743" />
 
 ## Security Data Sources
 
@@ -124,7 +75,7 @@ terraform/
 
 **Backend:** Remote state in Azure Storage Account with blob encryption
 
-**Import:** All Phase 1 console-built resources imported via `terraform import` — zero downtime migration to IaC
+**Import:** All Phase 1 console-built resources imported via `terraform import`: zero downtime migration to IaC
 
 ### Bicep
 ```
