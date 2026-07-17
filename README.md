@@ -1,6 +1,6 @@
 Azure Security Dashboard
 
-Enterprise-grade security monitoring dashboard that aggregates Microsoft Defender for Cloud alerts, Azure Activity Logs, and Log Analytics queries into a unified SOC-style interface — reducing mean time to detect (MTTD) security issues across Azure environments.
+Enterprise-grade security monitoring dashboard that aggregates Microsoft Defender for Cloud alerts, Azure Activity Logs, and Log Analytics queries into a unified SOC-style interface, reducing mean time to detect (MTTD) security issues across Azure environments.
 
 ![Azure](https://img.shields.io/badge/Azure-AKS%20%7C%20Defender%20%7C%20Log%20Analytics-0078D4)
 ![Python](https://img.shields.io/badge/Python-3.12%20%7C%20Flask-blue)
