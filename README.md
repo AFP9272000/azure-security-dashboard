@@ -147,63 +147,6 @@ bicep/
 | **Auto-upgrade** | AKS patch channel with weekly maintenance windows |
 | **ACR admin disabled** | Pull access via AKS managed identity (AcrPull RBAC) |
 
-## Quick Start
-
-### Prerequisites
-- Azure subscription with Contributor access
-- Azure CLI, Terraform, Docker, kubectl, kubelogin
-- Python 3.12+
-
-### Deploy with Terraform
-
-```bash
-# Clone repository
-git clone https://github.com/AFP9272000/azure-security-dashboard.git
-cd azure-security-dashboard/terraform
-
-# Create backend storage (one-time)
-az storage account create --name secdashboardtfstate --resource-group security-dashboard \
-  --location eastus --sku Standard_LRS --allow-blob-public-access false
-az storage container create --name tfstate --account-name secdashboardtfstate --auth-mode login
-
-# Initialize and deploy
-terraform init
-terraform plan -out=tfplan \
-  -var="subscription_id=YOUR_SUB_ID" \
-  -var="tenant_id=YOUR_TENANT_ID" \
-  -var="authorized_ip_ranges=[\"YOUR_IP/32\"]"
-terraform apply tfplan
-```
-
-### Deploy with Bicep
-
-```bash
-az deployment sub create --location eastus \
-  --template-file bicep/main.bicep \
-  --parameters bicep/main.bicepparam
-```
-
-### Run Locally
-
-```bash
-python -m venv venv
-venv\Scripts\activate          # Windows
-pip install -r requirements.txt
-cp .env.example .env           # Fill in subscription + workspace IDs
-az login
-python -m app.main             # http://localhost:8080
-```
-
-### Container Build
-
-```bash
-docker build -t azure-security-dashboard .
-docker run -p 8080:8080 \
-  -e AZURE_SUBSCRIPTION_ID=your-sub-id \
-  -e LOG_ANALYTICS_WORKSPACE_ID=your-workspace-id \
-  azure-security-dashboard
-```
-
 ## Project Structure
 
 ```
